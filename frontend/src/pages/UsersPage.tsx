@@ -1,12 +1,23 @@
 import React, { useState } from "react";
-import UserService from "../services/user.service";
+import UserService, { UserQueryParams } from "../services/user.service";
 import { IUserResponse } from "../types/dtos";
 import useDataFetch from "../hooks/useDataFetch";
 import Pagination from "../components/Pagination";
 import Table, { Column } from "../components/Table";
-import UserForm from "../components/UserForm";
+import useDebounce from "../hooks/useDebounce";
 
 const UsersPage: React.FC = () => {
+  const [searchName, setSearchName] = useState("");
+  const debouncedSearch = useDebounce(searchName, 500);
+
+  const queryParams = React.useMemo(
+    () => ({
+      email: debouncedSearch,
+      status: true,
+    }),
+    [debouncedSearch],
+  );
+
   const {
     data: users,
     paginationMeta,
@@ -14,38 +25,14 @@ const UsersPage: React.FC = () => {
     error,
     page,
     handlePageChange,
-    refetch,
-  } = useDataFetch<IUserResponse>(UserService.getUsers);
+  } = useDataFetch<IUserResponse, UserQueryParams>(
+    UserService.getUsers,
+    queryParams,
+  );
 
-  const [showForm, setShowForm] = useState(false);
-  const [editingUser, setEditingUser] = useState<IUserResponse | null>(null);
-
-  const handleEditUser = (user: IUserResponse) => {
-    setEditingUser(user);
-    setShowForm(true);
-  };
-
-  const handleDeleteUser = async (user: IUserResponse) => {
-    if (window.confirm(`Are you sure you want to delete user "${user.first_name} ${user.last_name}"?`)) {
-      try {
-        await UserService.deleteUser(user.id);
-        refetch(); // Refetch data after deletion
-      } catch (err: any) {
-        alert(err.message || "Failed to delete user.");
-      }
-    }
-  };
-
-  const handleFormSubmitSuccess = () => {
-    setShowForm(false);
-    setEditingUser(null);
-    refetch(); // Refresh table data
-  };
-
-  const handleFormCancel = () => {
-    setShowForm(false);
-    setEditingUser(null);
-  };
+  React.useEffect(() => {
+    handlePageChange(1);
+  }, [debouncedSearch]);
 
   const userColumns: Column<IUserResponse>[] = [
     { key: "id", title: "ID" },
@@ -67,26 +54,6 @@ const UsersPage: React.FC = () => {
       title: "Updated At",
       render: (user) => new Date(user.updatedAt).toLocaleDateString(),
     },
-    {
-      key: "actions",
-      title: "Actions",
-      render: (user) => (
-        <div className="space-x-2">
-          <button
-            onClick={() => handleEditUser(user)}
-            className="font-medium text-indigo-600 hover:text-indigo-900"
-          >
-            Edit
-          </button>
-          <button
-            onClick={() => handleDeleteUser(user)}
-            className="font-medium text-red-600 hover:text-red-900"
-          >
-            Delete
-          </button>
-        </div>
-      ),
-    },
   ];
 
   if (loading) {
@@ -104,18 +71,17 @@ const UsersPage: React.FC = () => {
         {/* No "Add New User" button as UserService does not have createUser method */}
       </div>
 
-      {showForm && editingUser && ( // Only show form if editing and editingUser is set
-        <div className="mb-8 p-6 bg-gray-50 rounded-lg shadow-inner">
-          <h3 className="text-xl font-semibold mb-4 text-gray-700">Edit User</h3>
-          <UserForm
-            currentUser={editingUser}
-            onSubmitSuccess={handleFormSubmitSuccess}
-            onCancel={handleFormCancel}
-          />
-        </div>
-      )}
+      <div className="mb-4 flex gap-2">
+        <input
+          type="text"
+          placeholder="Search by email..."
+          value={searchName}
+          onChange={(e) => setSearchName(e.target.value)}
+          className="border px-3 py-2 rounded w-64"
+        />
+      </div>
 
-      {users.length === 0 && !showForm ? (
+      {users.length === 0 ? (
         <p className="text-center text-gray-600">No users found.</p>
       ) : (
         <Table columns={userColumns} data={users} />

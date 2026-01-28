@@ -28,9 +28,9 @@ export const createProduct = async (
 
   const newProduct = await productRepository.create({
     ...productData,
-    user: { connect: { id: userId } },
-    category: { connect: { id: productData.categoryId } },
+    userId,
   });
+
   return new ProductResponseDTO(newProduct);
 };
 

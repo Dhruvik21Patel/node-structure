@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import UserService from "../services/user.service";
+import UserProfileService from "../services/profile.service";
 import { IUserResponse } from "../types/dtos.d";
 
 const ProfilePage: React.FC = () => {
@@ -9,7 +9,7 @@ const ProfilePage: React.FC = () => {
 
   const fetchProfile = async () => {
     try {
-      const response = await UserService.getMyProfile();
+      const response = await UserProfileService.getMyProfile();
       if (response.success && response.data) {
         setUser(response.data);
       } else {

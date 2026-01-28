@@ -17,7 +17,7 @@ const Layout: React.FC = () => {
       <nav className="bg-gray-800 text-white p-4 shadow-md">
         <div className="container mx-auto flex justify-between items-center">
           <Link to="/" className="text-xl font-bold">
-            Gemini App
+            Product App
           </Link>
           <div className="space-x-4">
             <Link to="/" className="hover:text-gray-300">
@@ -28,7 +28,7 @@ const Layout: React.FC = () => {
                 <Link to="/profile" className="hover:text-gray-300">
                   Profile
                 </Link>
-                <Link to="/user" className="hover:text-gray-300">
+                <Link to="/users" className="hover:text-gray-300">
                   Users
                 </Link>
                 <Link to="/categories" className="hover:text-gray-300">

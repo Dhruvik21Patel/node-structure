@@ -7,35 +7,35 @@ import {
   IUpdateCategoryRequest,
 } from "../types/dtos.d";
 
-class CategoryService {
-  private readonly CATEGORY_BASE_URL = "/categories"; // Assuming category routes are under /categories
+export interface CategoryQueryParams {
+  page?: number;
+  limit?: number;
+  name?: string;
+}
 
+class CategoryService {
   async createCategory(
     data: ICreateCategoryRequest,
   ): Promise<APIResponse<ICategoryResponse>> {
     const response = await api.post<APIResponse<ICategoryResponse>>(
-      this.CATEGORY_BASE_URL,
+      "/categories",
       data,
     );
     return response.data;
   }
 
-  async getCategories(
-    page: number = 1,
-    limit: number = 10,
-  ): Promise<APIResponse<PaginatedResponse<ICategoryResponse>>> {
-    debugger;
+  async getCategories(params: CategoryQueryParams) {
     const response = await api.get<
       APIResponse<PaginatedResponse<ICategoryResponse>>
-    >(this.CATEGORY_BASE_URL, {
-      params: { page, limit },
+    >("/categories", {
+      params,
     });
     return response.data;
   }
 
   async getCategoryById(id: string): Promise<APIResponse<ICategoryResponse>> {
     const response = await api.get<APIResponse<ICategoryResponse>>(
-      `${this.CATEGORY_BASE_URL}/${id}`,
+      `/categories/${id}`,
     );
     return response.data;
   }
@@ -44,17 +44,15 @@ class CategoryService {
     id: string,
     data: IUpdateCategoryRequest,
   ): Promise<APIResponse<ICategoryResponse>> {
-    const response = await api.patch<APIResponse<ICategoryResponse>>(
-      `${this.CATEGORY_BASE_URL}/${id}`,
+    const response = await api.put<APIResponse<ICategoryResponse>>(
+      `/categories/${id}`,
       data,
     );
     return response.data;
   }
 
   async deleteCategory(id: string): Promise<APIResponse<null>> {
-    const response = await api.delete<APIResponse<null>>(
-      `${this.CATEGORY_BASE_URL}/${id}`,
-    );
+    const response = await api.delete<APIResponse<null>>(`/categories/${id}`);
     return response.data;
   }
 }

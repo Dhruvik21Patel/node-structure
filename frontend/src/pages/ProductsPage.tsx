@@ -1,12 +1,25 @@
 import React, { useState } from "react";
-import ProductService from "../services/product.service";
+import ProductService, {
+  ProductQueryParams,
+} from "../services/product.service";
 import { IProductResponse } from "../types/dtos";
 import useDataFetch from "../hooks/useDataFetch";
 import Pagination from "../components/Pagination";
 import Table, { Column } from "../components/Table";
 import ProductForm from "../components/ProductForm";
+import useDebounce from "../hooks/useDebounce";
 
 const ProductsPage: React.FC = () => {
+  const [searchName, setSearchName] = useState("");
+  const debouncedSearch = useDebounce(searchName, 500);
+
+  const queryParams = React.useMemo(
+    () => ({
+      name: debouncedSearch,
+    }),
+    [debouncedSearch],
+  );
+
   const {
     data: products,
     paginationMeta,
@@ -15,15 +28,24 @@ const ProductsPage: React.FC = () => {
     page,
     handlePageChange,
     refetch,
-  } = useDataFetch<IProductResponse>(ProductService.getProducts);
+  } = useDataFetch<IProductResponse, ProductQueryParams>(
+    ProductService.getProducts,
+    queryParams,
+  );
 
   const [showForm, setShowForm] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<IProductResponse | null>(null);
+  const [editingProduct, setEditingProduct] = useState<IProductResponse | null>(
+    null,
+  );
 
   const handleAddProduct = () => {
     setEditingProduct(null);
     setShowForm(true);
   };
+
+  React.useEffect(() => {
+    handlePageChange(1);
+  }, [debouncedSearch]);
 
   const handleEditProduct = (product: IProductResponse) => {
     setEditingProduct(product);
@@ -31,7 +53,11 @@ const ProductsPage: React.FC = () => {
   };
 
   const handleDeleteProduct = async (product: IProductResponse) => {
-    if (window.confirm(`Are you sure you want to delete product "${product.name}"?`)) {
+    if (
+      window.confirm(
+        `Are you sure you want to delete product "${product.name}"?`,
+      )
+    ) {
       try {
         await ProductService.deleteProduct(product.id);
         refetch(); // Refetch data after deletion
@@ -55,9 +81,21 @@ const ProductsPage: React.FC = () => {
   const productColumns: Column<IProductResponse>[] = [
     { key: "id", title: "ID" },
     { key: "name", title: "Name" },
-    { key: "description", title: "Description", render: (product) => product.description || "N/A" },
-    { key: "price", title: "Price", render: (product) => `$${product.price.toFixed(2)}` },
-    { key: "category", title: "Category", render: (product) => product.category.name },
+    {
+      key: "description",
+      title: "Description",
+      render: (product) => product.description || "N/A",
+    },
+    {
+      key: "price",
+      title: "Price",
+      render: (product) => `$${product.price.toFixed(2)}`,
+    },
+    {
+      key: "category",
+      title: "Category",
+      render: (product) => product.category.name,
+    },
     {
       key: "createdAt",
       title: "Created At",
@@ -117,6 +155,16 @@ const ProductsPage: React.FC = () => {
           />
         </div>
       )}
+
+      <div className="mb-4 flex gap-2">
+        <input
+          type="text"
+          placeholder="Search by name..."
+          value={searchName}
+          onChange={(e) => setSearchName(e.target.value)}
+          className="border px-3 py-2 rounded w-64"
+        />
+      </div>
 
       {products.length === 0 && !showForm ? (
         <p className="text-center text-gray-600">No products found.</p>

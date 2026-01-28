@@ -1,75 +1,82 @@
-import React, { useEffect, useState } from 'react';
-import { useForm, FormProvider } from 'react-hook-form';
-import FormInput from './FormInput';
-import FormSelect from './FormSelect';
-import ProductService from '../services/product.service';
-import CategoryService from '../services/category.service';
+import React, { useEffect, useState } from "react";
+import { useForm, FormProvider } from "react-hook-form";
+import FormInput from "./FormInput";
+import FormSelect from "./FormSelect";
+import ProductService from "../services/product.service";
+import CategoryService from "../services/category.service";
 import {
   IProductResponse,
   ICreateProductRequest,
   IUpdateProductRequest,
   ICategoryResponse,
-} from '../types/dtos';
+} from "../types/dtos";
 
 interface ProductFormProps {
-  currentProduct?: IProductResponse | null; // For editing
+  currentProduct?: IProductResponse | null;
   onSubmitSuccess: () => void;
   onCancel: () => void;
 }
 
-const ProductForm: React.FC<ProductFormProps> = ({ currentProduct, onSubmitSuccess, onCancel }) => {
+type ProductFormData = ICreateProductRequest;
+
+const ProductForm: React.FC<ProductFormProps> = ({
+  currentProduct,
+  onSubmitSuccess,
+  onCancel,
+}) => {
   const [categories, setCategories] = useState<ICategoryResponse[]>([]);
-  const methods = useForm<ICreateProductRequest | IUpdateProductRequest>({
+
+  const methods = useForm<ProductFormData>({
     defaultValues: {
-      name: currentProduct?.name || '',
-      description: currentProduct?.description || '',
-      price: currentProduct?.price || 0,
-      categoryId: currentProduct?.category.id || '', // Initialize with category ID for edit
+      name: "",
+      description: "",
+      price: 0,
+      categoryId: "",
     },
   });
-  const { handleSubmit, reset, formState: { isSubmitting } } = methods;
 
+  const {
+    handleSubmit,
+    reset,
+    formState: { isSubmitting },
+  } = methods;
+
+  // ✅ Load categories
   useEffect(() => {
-    // Fetch categories for the dropdown
     const fetchCategories = async () => {
-      try {
-        const response = await CategoryService.getCategories(1, 100); // Fetch all categories
-        if (response.success && response.data) {
-          setCategories(response.data.items);
-        }
-      } catch (err) {
-        console.error('Failed to fetch categories:', err);
+      const response = await CategoryService.getCategories({
+        page: 1,
+        limit: 100,
+      });
+      if (response.success && response.data) {
+        setCategories(response.data.items);
       }
     };
     fetchCategories();
   }, []);
 
+  // ✅ Reset form when editing AND when categories loaded
   useEffect(() => {
-    reset({
-      name: currentProduct?.name || '',
-      description: currentProduct?.description || '',
-      price: currentProduct?.price || 0,
-      categoryId: currentProduct?.category.id || '',
-    });
-  }, [currentProduct, reset]);
+    if (currentProduct && categories.length > 0) {
+      reset({
+        name: currentProduct.name,
+        description: currentProduct.description || "",
+        price: currentProduct.price,
+        categoryId: currentProduct.category?.id || "",
+      });
+    }
+  }, [currentProduct, categories, reset]);
 
-  const onSubmit = async (data: ICreateProductRequest | IUpdateProductRequest) => {
+  const onSubmit = async (data: ProductFormData) => {
     try {
-      const productData = {
-        ...data,
-        price: parseFloat(data.price as any), // Ensure price is a number
-      };
-
       if (currentProduct) {
-        // Update product
-        await ProductService.updateProduct(currentProduct.id, productData as IUpdateProductRequest);
+        await ProductService.updateProduct(currentProduct.id, data);
       } else {
-        // Create new product
-        await ProductService.createProduct(productData as ICreateProductRequest);
+        await ProductService.createProduct(data);
       }
       onSubmitSuccess();
     } catch (err: any) {
-      alert(err.message || 'Failed to save product.');
+      alert(err.message || "Failed to save product.");
     }
   };
 
@@ -80,50 +87,40 @@ const ProductForm: React.FC<ProductFormProps> = ({ currentProduct, onSubmitSucce
           name="name"
           label="Product Name"
           type="text"
-          placeholder="Enter product name"
-          rules={{ required: 'Product name is required' }}
+          rules={{ required: "Product name is required" }}
         />
-        <FormInput
-          name="description"
-          label="Description"
-          type="textarea" // Assuming FormInput can handle textarea
-          placeholder="Enter product description"
-        />
+
+        <FormInput name="description" label="Description" type="textarea" />
+
         <FormInput
           name="price"
           label="Price"
           type="number"
-          placeholder="0.00"
           step="0.01"
           rules={{
-            required: 'Price is required',
-            min: { value: 0, message: 'Price cannot be negative' },
+            required: "Price is required",
+            min: { value: 0, message: "Price cannot be negative" },
             valueAsNumber: true,
           }}
         />
+
         <FormSelect
           name="categoryId"
           label="Category"
-          options={categories.map((cat) => ({ value: cat.id, label: cat.name }))}
-          placeholder="Select a category"
-          rules={{ required: 'Category is required' }}
+          options={categories.map((cat) => ({
+            value: cat.id,
+            label: cat.name,
+          }))}
+          rules={{ required: "Category is required" }}
         />
 
         <div className="flex justify-end space-x-2">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            disabled={isSubmitting}
-          >
+          <button type="button" onClick={onCancel} disabled={isSubmitting}>
             Cancel
           </button>
-          <button
-            type="submit"
-            className="inline-flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            disabled={isSubmitting}
-          >
-            {currentProduct ? 'Save Changes' : 'Add Product'}
+
+          <button type="submit" disabled={isSubmitting}>
+            {currentProduct ? "Save Changes" : "Add Product"}
           </button>
         </div>
       </form>

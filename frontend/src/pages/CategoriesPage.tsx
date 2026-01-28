@@ -1,12 +1,24 @@
 import React, { useState } from "react";
-import CategoryService from "../services/category.service";
-import { ICategoryResponse, ICreateCategoryRequest } from "../types/dtos";
+import CategoryService, {
+  CategoryQueryParams,
+} from "../services/category.service";
+import { ICategoryResponse } from "../types/dtos";
 import useDataFetch from "../hooks/useDataFetch";
 import Pagination from "../components/Pagination";
 import Table, { Column } from "../components/Table"; // Table no longer has generic actions
 import CategoryForm from "../components/CategoryForm"; // Import the new CategoryForm
+import useDebounce from "../hooks/useDebounce";
 
 const CategoriesPage: React.FC = () => {
+  const [searchName, setSearchName] = useState("");
+  const debouncedSearch = useDebounce(searchName, 500);
+
+  const queryParams = React.useMemo(
+    () => ({
+      name: debouncedSearch,
+    }),
+    [debouncedSearch],
+  );
   const {
     data: categories,
     paginationMeta,
@@ -14,11 +26,15 @@ const CategoriesPage: React.FC = () => {
     error,
     page,
     handlePageChange,
-    refetch, // Ensure refetch is available from useDataFetch
-  } = useDataFetch<ICategoryResponse>(CategoryService.getCategories);
+    refetch,
+  } = useDataFetch<ICategoryResponse, CategoryQueryParams>(
+    CategoryService.getCategories,
+    queryParams,
+  );
 
   const [showForm, setShowForm] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<ICategoryResponse | null>(null);
+  const [editingCategory, setEditingCategory] =
+    useState<ICategoryResponse | null>(null);
 
   const handleAddCategory = () => {
     setEditingCategory(null);
@@ -31,7 +47,11 @@ const CategoriesPage: React.FC = () => {
   };
 
   const handleDeleteCategory = async (category: ICategoryResponse) => {
-    if (window.confirm(`Are you sure you want to delete category "${category.name}"?`)) {
+    if (
+      window.confirm(
+        `Are you sure you want to delete category "${category.name}"?`,
+      )
+    ) {
       try {
         await CategoryService.deleteCategory(category.id);
         refetch(); // Refetch data after deletion
@@ -40,6 +60,11 @@ const CategoriesPage: React.FC = () => {
       }
     }
   };
+
+  React.useEffect(() => {
+    handlePageChange(1);
+  }, [debouncedSearch]);
+
 
   const handleFormSubmitSuccess = () => {
     setShowForm(false);
@@ -83,7 +108,9 @@ const CategoriesPage: React.FC = () => {
   ];
 
   if (loading) {
-    return <div className="text-center text-gray-600">Loading categories...</div>;
+    return (
+      <div className="text-center text-gray-600">Loading categories...</div>
+    );
   }
 
   if (error) {
@@ -114,6 +141,15 @@ const CategoriesPage: React.FC = () => {
           />
         </div>
       )}
+      <div className="mb-4 flex gap-2">
+        <input
+          type="text"
+          placeholder="Search by name..."
+          value={searchName}
+          onChange={(e) => setSearchName(e.target.value)}
+          className="border px-3 py-2 rounded w-64"
+        />
+      </div>
 
       {categories.length === 0 && !showForm ? (
         <p className="text-center text-gray-600">No categories found.</p>

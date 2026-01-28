@@ -1,6 +1,14 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "../config/prisma";
 
+type CreateProductData = {
+  name: string;
+  description?: string;
+  price: number;
+  categoryId: string;
+  userId: string;
+};
+
 const productSelect = {
   id: true,
   name: true,
@@ -39,10 +47,20 @@ type ProductFindAllOptions = {
 };
 
 export const create = async (
-  data: Prisma.ProductCreateInput,
+  data: CreateProductData,
 ): Promise<PlainProduct> => {
   return prisma.product.create({
-    data,
+    data: {
+      name: data.name,
+      description: data.description,
+      price: data.price,
+      user: {
+        connect: { id: data.userId },
+      },
+      category: {
+        connect: { id: data.categoryId },
+      },
+    },
     select: productSelect,
   });
 };
