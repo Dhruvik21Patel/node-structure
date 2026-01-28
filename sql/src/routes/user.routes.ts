@@ -1,8 +1,13 @@
-import { Router } from 'express';
-import * as userController from '../controllers/user.controller';
-import validate from '../middlewares/validate.middleware';
-import { updateUserSchema } from '../validations/user.validation';
-import { authMiddleware } from '../middlewares/auth.middleware';
+import { Router } from "express";
+import {
+  deleteUser,
+  getAllUsers,
+  getUserById,
+  updateUser,
+} from "../controllers/user.controller";
+import validate from "../middlewares/validate.middleware";
+import { updateUserSchema } from "../validations/user.validation";
+import { authMiddleware } from "../middlewares/auth.middleware";
 
 const router = Router();
 
@@ -78,7 +83,7 @@ router.use(authMiddleware);
  *       401:
  *         description: Unauthorized
  */
-router.get('/', userController.getAllUsers);
+router.get("/", getAllUsers);
 
 /**
  * @swagger
@@ -106,7 +111,7 @@ router.get('/', userController.getAllUsers);
  *       404:
  *         description: User not found
  */
-router.get('/:id', userController.getUserById);
+router.get("/:id", getUserById);
 
 /**
  * @swagger
@@ -140,7 +145,7 @@ router.get('/:id', userController.getUserById);
  *       404:
  *         description: User not found
  */
-router.put('/:id', validate(updateUserSchema), userController.updateUser);
+router.put("/:id", validate(updateUserSchema), updateUser);
 
 /**
  * @swagger
@@ -164,7 +169,7 @@ router.put('/:id', validate(updateUserSchema), userController.updateUser);
  *       404:
  *         description: User not found
  */
-router.delete('/:id', userController.deleteUser);
+router.delete("/:id", deleteUser);
 
 export default router;
 

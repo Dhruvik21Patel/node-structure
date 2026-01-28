@@ -28,7 +28,7 @@ export const getAllCategories = async (
   next: NextFunction,
 ) => {
   try {
-    const categories = await categoryService.getAllCategories();
+    const categories = await categoryService.getAllCategories(req.query);
     sendSuccess(res, "Categories retrieved successfully", categories);
   } catch (error) {
     next(error);

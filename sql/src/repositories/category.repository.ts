@@ -1,9 +1,17 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "../config/prisma";
 
 export type PlainCategory = {
   id: string;
   name: string;
   createdAt: Date;
+};
+
+type CategoryFindAllOptions = {
+  where?: Prisma.CategoryWhereInput;
+  skip?: number;
+  take?: number;
+  orderBy?: Prisma.CategoryOrderByWithRelationInput;
 };
 
 export const create = async (data: {
@@ -31,14 +39,25 @@ export const findById = async (id: string): Promise<PlainCategory | null> => {
   });
 };
 
-export const findAll = async (): Promise<PlainCategory[]> => {
-  return prisma.category.findMany({
-    select: {
-      id: true,
-      name: true,
-      createdAt: true,
-    },
-  });
+export const findAll = async (
+  options: CategoryFindAllOptions,
+): Promise<{ items: PlainCategory[]; total: number }> => {
+  const { where, skip, take, orderBy } = options;
+  const [items, total] = await prisma.$transaction([
+    prisma.category.findMany({
+      where,
+      skip,
+      take,
+      orderBy,
+      select: {
+        id: true,
+        name: true,
+        createdAt: true,
+      },
+    }),
+    prisma.category.count({ where }),
+  ]);
+  return { items, total };
 };
 
 export const update = async (

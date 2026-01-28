@@ -5,6 +5,14 @@ import {
   UpdateCategoryRequestDTO,
 } from "../types/dto/request/category.request.dto";
 import { CategoryResponseDTO } from "../types/dto/response/category.response.dto";
+import { paginate } from "../utils/pagination";
+import { Prisma } from "@prisma/client";
+
+export interface CategoryQueryOptions {
+  page?: string;
+  limit?: string;
+  name?: string;
+}
 
 export const createCategory = async (
   categoryData: CreateCategoryRequestDTO,
@@ -17,9 +25,23 @@ export const createCategory = async (
   return new CategoryResponseDTO(newCategory);
 };
 
-export const getAllCategories = async (): Promise<CategoryResponseDTO[]> => {
-  const categories = await categoryRepository.findAll();
-  return categories.map((category) => new CategoryResponseDTO(category));
+export const getAllCategories = async (options: CategoryQueryOptions) => {
+  const where: Prisma.CategoryWhereInput = {};
+
+  if (options.name) {
+    where.name = {
+      contains: options.name,
+      mode: "insensitive",
+    };
+  }
+
+  return paginate(
+    categoryRepository.findAll,
+    where,
+    options.page,
+    options.limit,
+    (c) => new CategoryResponseDTO(c),
+  );
 };
 
 export const getCategoryById = async (
@@ -44,9 +66,7 @@ export const updateCategory = async (
   return new CategoryResponseDTO(updatedCategory!);
 };
 
-export const deleteCategory = async (
-  id: string,
-): Promise<void> => {
+export const deleteCategory = async (id: string): Promise<void> => {
   const category = await categoryRepository.findById(id);
   if (!category) {
     throw new ApiError(404, "Category not found");
