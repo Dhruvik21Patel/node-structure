@@ -28,8 +28,8 @@ export const getAllProducts = async (
   next: NextFunction,
 ) => {
   try {
-    const products = await productService.getAllProducts(req.query);
-    sendSuccess(res, "Products retrieved successfully", products);
+    const result = await productService.getAllProducts(req.query);
+    sendSuccess(res, "Products retrieved successfully", result);
   } catch (error) {
     next(error);
   }
@@ -72,7 +72,7 @@ export const deleteProduct = async (
 ) => {
   try {
     await productService.deleteProduct(req.params.id);
-    sendSuccess(res, "Product deleted successfully", null);
+    sendSuccess(res, "Product deleted successfully", null, 204);
   } catch (error) {
     next(error);
   }

@@ -41,13 +41,11 @@ const router = Router();
  *           type: string
  *     responses:
  *       200:
- *         description: A list of products.
+ *         description: A paginated list of products.
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/ProductResponse'
+ *               $ref: '#/components/schemas/PaginatedProductResponse'
  */
 router.get('/', productController.getAllProducts);
 
@@ -152,7 +150,7 @@ router.put('/:id', authMiddleware, validate(updateProductSchema), productControl
  *         schema:
  *           type: string
  *     responses:
- *       200:
+ *       204:
  *         description: Product deleted successfully.
  *       401:
  *         description: Unauthorized
@@ -167,6 +165,26 @@ export default router;
  * @swagger
  * components:
  *   schemas:
+ *     PaginationInfo:
+ *       type: object
+ *       properties:
+ *         totalItems:
+ *           type: integer
+ *         totalPages:
+ *           type: integer
+ *         currentPage:
+ *           type: integer
+ *         pageSize:
+ *           type: integer
+ *     PaginatedProductResponse:
+ *       type: object
+ *       properties:
+ *         items:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/ProductResponse'
+ *         pagination:
+ *           $ref: '#/components/schemas/PaginationInfo'
  *     ProductResponse:
  *       type: object
  *       properties:

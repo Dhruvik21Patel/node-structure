@@ -6,6 +6,8 @@ import {
   UpdateProductRequestDTO,
 } from "../types/dto/request/product.request.dto";
 import { ProductResponseDTO } from "../types/dto/response/product.response.dto";
+import { PaginatedResponseDTO } from "../types/dto/response/pagination.response.dto";
+import { Prisma } from "@prisma/client";
 
 export const createProduct = async (
   productData: CreateProductRequestDTO,
@@ -16,32 +18,38 @@ export const createProduct = async (
     throw new ApiError(400, "Category not found");
   }
 
-  const newProduct = await productRepository.create({ ...productData, userId });
+  const newProduct = await productRepository.create({
+    ...productData,
+    user: { connect: { id: userId } },
+    category: { connect: { id: productData.categoryId } },
+  });
   return new ProductResponseDTO(newProduct);
 };
 
 export const getAllProducts = async (
   options: any,
-): Promise<ProductResponseDTO[]> => {
-  const { page = 1, limit = 10, name, categoryId } = options;
+): Promise<PaginatedResponseDTO<ProductResponseDTO>> => {
+  const page = Number(options.page) || 1;
+  const limit = Number(options.limit) || 10;
   const skip = (page - 1) * limit;
 
-  const prismaOptions: any = {
+  const where: Prisma.ProductWhereInput = {};
+  if (options.name) {
+    where.name = { contains: options.name, mode: "insensitive" };
+  }
+  if (options.categoryId) {
+    where.categoryId = options.categoryId;
+  }
+
+  const { items, total } = await productRepository.findAll({
+    where,
     skip,
-    take: parseInt(limit, 10),
-    where: {},
-  };
+    take: limit,
+  });
 
-  if (name) {
-    prismaOptions.where.name = { contains: name, mode: "insensitive" };
-  }
+  const productDTOs = items.map((product) => new ProductResponseDTO(product));
 
-  if (categoryId) {
-    prismaOptions.where.categoryId = categoryId;
-  }
-
-  const products = await productRepository.findAll(prismaOptions);
-  return products.map((product) => new ProductResponseDTO(product));
+  return new PaginatedResponseDTO(productDTOs, total, page, limit);
 };
 
 export const getProductById = async (
@@ -71,7 +79,7 @@ export const updateProduct = async (
   }
 
   const updatedProduct = await productRepository.update(id, productData);
-  return new ProductResponseDTO(updatedProduct!);
+  return new ProductResponseDTO(updatedProduct);
 };
 
 export const deleteProduct = async (id: string): Promise<void> => {

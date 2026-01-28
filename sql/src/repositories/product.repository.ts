@@ -1,17 +1,11 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "../config/prisma";
 
-export type PlainProduct = Prisma.ProductGetPayload<{
-  select: typeof productSelect;
-}>;
-
 const productSelect = {
   id: true,
   name: true,
   description: true,
   price: true,
-  categoryId: true,
-  userId: true,
   createdAt: true,
   category: {
     select: {
@@ -33,7 +27,20 @@ const productSelect = {
   },
 };
 
-export const create = async (data: any): Promise<PlainProduct> => {
+export type PlainProduct = Prisma.ProductGetPayload<{
+  select: typeof productSelect;
+}>;
+
+type ProductFindAllOptions = {
+  where?: Prisma.ProductWhereInput;
+  skip?: number;
+  take?: number;
+  orderBy?: Prisma.ProductOrderByWithRelationInput;
+};
+
+export const create = async (
+  data: Prisma.ProductCreateInput,
+): Promise<PlainProduct> => {
   return prisma.product.create({
     data,
     select: productSelect,
@@ -47,22 +54,21 @@ export const findById = async (id: string): Promise<PlainProduct | null> => {
   });
 };
 
-export const findAll = async (options: any): Promise<PlainProduct[]> => {
+export const findAll = async (
+  options: ProductFindAllOptions,
+): Promise<{ items: PlainProduct[]; total: number }> => {
   const { where, skip, take, orderBy } = options;
-
-  return prisma.product.findMany({
-    where,
-    skip,
-    take,
-    orderBy,
-    select: productSelect, // always enforced
-  });
+  const [items, total] = await prisma.$transaction([
+    prisma.product.findMany({ where, skip, take, orderBy, select: productSelect }),
+    prisma.product.count({ where }),
+  ]);
+  return { items, total };
 };
 
 export const update = async (
   id: string,
-  data: any,
-): Promise<PlainProduct | null> => {
+  data: Prisma.ProductUpdateInput,
+): Promise<PlainProduct> => {
   return prisma.product.update({
     where: { id },
     data,
@@ -70,7 +76,7 @@ export const update = async (
   });
 };
 
-export const remove = async (id: string): Promise<PlainProduct | null> => {
+export const remove = async (id: string): Promise<PlainProduct> => {
   return prisma.product.delete({
     where: { id },
     select: productSelect,

@@ -7,8 +7,8 @@ export class ProductResponseDTO {
   name: string;
   description: string | null;
   price: number;
-  category: CategoryResponseDTO | null;
-  user: UserResponseDTO | null;
+  category: CategoryResponseDTO;
+  user: UserResponseDTO;
   createdAt: Date;
 
   constructor(data: PlainProduct) {
@@ -16,10 +16,8 @@ export class ProductResponseDTO {
     this.name = data.name;
     this.description = data.description;
     this.price = data.price;
-    this.category = data.category
-      ? new CategoryResponseDTO(data.category)
-      : null;
-    this.user = data.user ? new UserResponseDTO(data.user) : null;
+    this.category = new CategoryResponseDTO(data.category);
+    this.user = new UserResponseDTO(data.user);
     this.createdAt = data.createdAt;
   }
 }
