@@ -2,61 +2,55 @@ import * as userRepository from "../repositories/user.repository";
 import { ApiError } from "../utils/ApiError";
 import { UpdateUserRequestDTO } from "../types/dto/request/user.request.dto";
 import { UserResponseDTO } from "../types/dto/response/user.response.dto";
+import { paginate } from "../utils/pagination";
+import { Prisma } from "@prisma/client";
 
-export const getAllUsers = async (options: any) => {
-  const {
-    page = 1,
-    limit = 10,
-    email,
-    first_name,
-    last_name,
-    status,
-  } = options;
+export interface UserQueryOptions {
+  page?: string;
+  limit?: string;
+  email?: string;
+  first_name?: string;
+  last_name?: string;
+  status?: string; // comes from query as string
+}
 
-  const pageNumber = Number(page);
-  const pageSize = Number(limit);
-  const skip = (pageNumber - 1) * pageSize;
+export const getAllUsers = async (options: UserQueryOptions) => {
+  const andConditions: Prisma.UserWhereInput[] = [];
 
-  const andConditions = [];
-
-  if (email) {
-    andConditions.push({ email: { contains: email, mode: "insensitive" } });
-  }
-  if (first_name) {
+  if (options.email) {
     andConditions.push({
-      first_name: { contains: first_name, mode: "insensitive" },
+      email: { contains: options.email, mode: "insensitive" },
     });
   }
-  if (last_name) {
+
+  if (options.first_name) {
     andConditions.push({
-      last_name: { contains: last_name, mode: "insensitive" },
+      first_name: { contains: options.first_name, mode: "insensitive" },
     });
   }
-  if (status !== undefined) {
-    andConditions.push({ status: status === "true" });
+
+  if (options.last_name) {
+    andConditions.push({
+      last_name: { contains: options.last_name, mode: "insensitive" },
+    });
   }
 
-  const where = andConditions.length ? { AND: andConditions } : {};
+  if (options.status !== undefined) {
+    andConditions.push({
+      status: options.status === "true",
+    });
+  }
 
-  const prismaOptions = {
-    skip,
-    take: pageSize,
+  const where: Prisma.UserWhereInput =
+    andConditions.length > 0 ? { AND: andConditions } : {};
+
+  return paginate(
+    userRepository.findAll,
     where,
-  };
-
-  const { items, total } = await userRepository.findAll(prismaOptions);
-
-  const totalPages = Math.ceil(total / pageSize);
-
-  return {
-    items: items.map((user) => new UserResponseDTO(user)),
-    pagination: {
-      totalItems: total,
-      totalPages,
-      currentPage: pageNumber,
-      pageSize,
-    },
-  };
+    options.page,
+    options.limit,
+    (u) => new UserResponseDTO(u),
+  );
 };
 
 export const getUserById = async (id: string): Promise<UserResponseDTO> => {

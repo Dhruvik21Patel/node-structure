@@ -59,7 +59,13 @@ export const findAll = async (
 ): Promise<{ items: PlainProduct[]; total: number }> => {
   const { where, skip, take, orderBy } = options;
   const [items, total] = await prisma.$transaction([
-    prisma.product.findMany({ where, skip, take, orderBy, select: productSelect }),
+    prisma.product.findMany({
+      where,
+      skip,
+      take,
+      orderBy,
+      select: productSelect,
+    }),
     prisma.product.count({ where }),
   ]);
   return { items, total };

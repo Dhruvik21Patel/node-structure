@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "../config/prisma";
 
 // A plain user object type, reflecting the DB schema for internal use
@@ -22,7 +23,9 @@ const userSelect = {
   updatedAt: true,
 };
 
-export const create = async (data: any): Promise<PlainUser> => {
+export const create = async (
+  data: Prisma.UserCreateInput,
+): Promise<PlainUser> => {
   return prisma.user.create({
     data,
     select: userSelect,
@@ -47,15 +50,23 @@ export const findById = async (id: string): Promise<PlainUser | null> => {
   });
 };
 
-export const findAll = async (
-  options: any,
-): Promise<{ items: PlainUser[]; total: number }> => {
+export const findAll = async (args: {
+  where?: Prisma.UserWhereInput;
+  skip?: number;
+  take?: number;
+  orderBy?: Prisma.UserOrderByWithRelationInput;
+}): Promise<{ items: PlainUser[]; total: number }> => {
+  const { where, skip, take, orderBy } = args;
+
   const [items, total] = await Promise.all([
     prisma.user.findMany({
-      ...options,
+      where,
+      skip,
+      take,
+      orderBy,
       select: userSelect,
     }),
-    prisma.user.count({ where: options.where }),
+    prisma.user.count({ where }),
   ]);
 
   return { items, total };
@@ -63,7 +74,7 @@ export const findAll = async (
 
 export const update = async (
   id: string,
-  data: any,
+  data: Prisma.UserUpdateInput,
 ): Promise<PlainUser | null> => {
   return prisma.user.update({
     where: { id },

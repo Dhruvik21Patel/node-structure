@@ -8,6 +8,14 @@ import {
 import { ProductResponseDTO } from "../types/dto/response/product.response.dto";
 import { PaginatedResponseDTO } from "../types/dto/response/pagination.response.dto";
 import { Prisma } from "@prisma/client";
+import { paginate } from "../utils/pagination";
+
+export interface ProductQueryOptions {
+  page?: string;
+  limit?: string;
+  name?: string;
+  categoryId?: string;
+}
 
 export const createProduct = async (
   productData: CreateProductRequestDTO,
@@ -26,30 +34,27 @@ export const createProduct = async (
   return new ProductResponseDTO(newProduct);
 };
 
-export const getAllProducts = async (
-  options: any,
-): Promise<PaginatedResponseDTO<ProductResponseDTO>> => {
-  const page = Number(options.page) || 1;
-  const limit = Number(options.limit) || 10;
-  const skip = (page - 1) * limit;
-
+export const getAllProducts = async (options: ProductQueryOptions) => {
   const where: Prisma.ProductWhereInput = {};
+
   if (options.name) {
-    where.name = { contains: options.name, mode: "insensitive" };
+    where.name = {
+      contains: options.name,
+      mode: "insensitive",
+    };
   }
+
   if (options.categoryId) {
     where.categoryId = options.categoryId;
   }
 
-  const { items, total } = await productRepository.findAll({
+  return paginate(
+    productRepository.findAll,
     where,
-    skip,
-    take: limit,
-  });
-
-  const productDTOs = items.map((product) => new ProductResponseDTO(product));
-
-  return new PaginatedResponseDTO(productDTOs, total, page, limit);
+    options.page,
+    options.limit,
+    (p) => new ProductResponseDTO(p),
+  );
 };
 
 export const getProductById = async (
