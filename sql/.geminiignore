@@ -1,0 +1,10 @@
+node_modules
+dist
+build
+coverage
+.prisma
+.git
+.env
+test
+
+src/generated/*
