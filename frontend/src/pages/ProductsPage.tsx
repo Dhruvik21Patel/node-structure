@@ -1,51 +1,89 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import ProductService from "../services/product.service";
-import { IPaginationMeta } from "../types/api.d"; // Corrected import
 import { IProductResponse } from "../types/dtos";
+import useDataFetch from "../hooks/useDataFetch";
+import Pagination from "../components/Pagination";
+import Table, { Column } from "../components/Table";
+import ProductForm from "../components/ProductForm";
 
 const ProductsPage: React.FC = () => {
-  const [products, setProducts] = useState<IProductResponse[]>([]);
-  const [pagination, setPagination] = useState<IPaginationMeta | null>(null); // Corrected type
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize] = useState(10); // Assuming a default page size
+  const {
+    data: products,
+    paginationMeta,
+    loading,
+    error,
+    page,
+    handlePageChange,
+    refetch,
+  } = useDataFetch<IProductResponse>(ProductService.getProducts);
 
-  useEffect(() => {
-    const fetchProducts = async () => {
+  const [showForm, setShowForm] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<IProductResponse | null>(null);
+
+  const handleAddProduct = () => {
+    setEditingProduct(null);
+    setShowForm(true);
+  };
+
+  const handleEditProduct = (product: IProductResponse) => {
+    setEditingProduct(product);
+    setShowForm(true);
+  };
+
+  const handleDeleteProduct = async (product: IProductResponse) => {
+    if (window.confirm(`Are you sure you want to delete product "${product.name}"?`)) {
       try {
-        setLoading(true);
-        const response = await ProductService.getProducts(
-          currentPage,
-          pageSize,
-        );
-        if (response.success && response.data) {
-          setProducts(response.data.items);
-          setPagination(response.data.pagination);
-        } else {
-          setError(response.message || "Failed to fetch products.");
-        }
+        await ProductService.deleteProduct(product.id);
+        refetch(); // Refetch data after deletion
       } catch (err: any) {
-        setError(err.message || "An error occurred while fetching products.");
-      } finally {
-        setLoading(false);
+        alert(err.message || "Failed to delete product.");
       }
-    };
-
-    fetchProducts();
-  }, [currentPage, pageSize]);
-
-  const handleNextPage = () => {
-    if (pagination && currentPage < pagination.totalPages) {
-      setCurrentPage((prev) => prev + 1);
     }
   };
 
-  const handlePrevPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage((prev) => prev - 1);
-    }
+  const handleFormSubmitSuccess = () => {
+    setShowForm(false);
+    setEditingProduct(null);
+    refetch(); // Refresh table data
   };
+
+  const handleFormCancel = () => {
+    setShowForm(false);
+    setEditingProduct(null);
+  };
+
+  const productColumns: Column<IProductResponse>[] = [
+    { key: "id", title: "ID" },
+    { key: "name", title: "Name" },
+    { key: "description", title: "Description", render: (product) => product.description || "N/A" },
+    { key: "price", title: "Price", render: (product) => `$${product.price.toFixed(2)}` },
+    { key: "category", title: "Category", render: (product) => product.category.name },
+    {
+      key: "createdAt",
+      title: "Created At",
+      render: (product) => new Date(product.createdAt).toLocaleDateString(),
+    },
+    {
+      key: "actions",
+      title: "Actions",
+      render: (product) => (
+        <div className="space-x-2">
+          <button
+            onClick={() => handleEditProduct(product)}
+            className="font-medium text-indigo-600 hover:text-indigo-900"
+          >
+            Edit
+          </button>
+          <button
+            onClick={() => handleDeleteProduct(product)}
+            className="font-medium text-red-600 hover:text-red-900"
+          >
+            Delete
+          </button>
+        </div>
+      ),
+    },
+  ];
 
   if (loading) {
     return <div className="text-center text-gray-600">Loading products...</div>;
@@ -57,51 +95,41 @@ const ProductsPage: React.FC = () => {
 
   return (
     <div className="max-w-4xl mx-auto bg-white p-8 rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-6 text-center">Products</h2>
-      {products.length === 0 ? (
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold text-gray-800">Products</h2>
+        <button
+          onClick={handleAddProduct}
+          className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+        >
+          Add New Product
+        </button>
+      </div>
+
+      {showForm && (
+        <div className="mb-8 p-6 bg-gray-50 rounded-lg shadow-inner">
+          <h3 className="text-xl font-semibold mb-4 text-gray-700">
+            {editingProduct ? "Edit Product" : "Add New Product"}
+          </h3>
+          <ProductForm
+            currentProduct={editingProduct}
+            onSubmitSuccess={handleFormSubmitSuccess}
+            onCancel={handleFormCancel}
+          />
+        </div>
+      )}
+
+      {products.length === 0 && !showForm ? (
         <p className="text-center text-gray-600">No products found.</p>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {products.map((product) => (
-            <div key={product.id} className="border rounded-lg p-4 shadow-sm">
-              <h3 className="text-xl font-semibold">{product.name}</h3>
-              <p className="text-gray-600 mt-2">
-                {product.description || "No description"}
-              </p>
-              <p className="text-blue-600 font-bold mt-2">
-                ${product.price.toFixed(2)}
-              </p>
-              <p className="text-sm text-gray-500">
-                Category: {product.category.name}
-              </p>
-              <p className="text-sm text-gray-500">
-                Created: {new Date(product.createdAt).toLocaleDateString()}
-              </p>
-            </div>
-          ))}
-        </div>
+        <Table columns={productColumns} data={products} />
       )}
-      {pagination && (
-        <div className="flex justify-between items-center mt-6">
-          <button
-            onClick={handlePrevPage}
-            disabled={currentPage === 1}
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50"
-          >
-            Previous
-          </button>
-          <span className="text-gray-700">
-            Page {pagination.currentPage} of {pagination.totalPages}
-          </span>
-          <button
-            onClick={handleNextPage}
-            disabled={currentPage === pagination.totalPages}
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50"
-          >
-            Next
-          </button>
-        </div>
-      )}
+
+      <Pagination
+        pagination={paginationMeta}
+        currentPage={page}
+        onPageChange={handlePageChange}
+        isLoading={loading}
+      />
     </div>
   );
 };

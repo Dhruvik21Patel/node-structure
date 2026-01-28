@@ -1,7 +1,7 @@
 // frontend/src/components/Layout.tsx
-import React from 'react';
-import { Outlet, Link } from 'react-router-dom';
-import AuthService from '../services/auth.service';
+import React from "react";
+import { Outlet, Link } from "react-router-dom";
+import AuthService from "../services/auth.service";
 
 const Layout: React.FC = () => {
   const isAuthenticated = AuthService.isAuthenticated();
@@ -9,7 +9,7 @@ const Layout: React.FC = () => {
   const handleLogout = () => {
     AuthService.logout();
     // Redirect to login page or home page after logout
-    window.location.href = '/login'; // Simple redirect for now
+    window.location.href = "/login"; // Simple redirect for now
   };
 
   return (
@@ -27,6 +27,9 @@ const Layout: React.FC = () => {
               <>
                 <Link to="/profile" className="hover:text-gray-300">
                   Profile
+                </Link>
+                <Link to="/user" className="hover:text-gray-300">
+                  Users
                 </Link>
                 <Link to="/categories" className="hover:text-gray-300">
                   Categories

@@ -1,8 +1,11 @@
-import { Router } from 'express';
-import * as categoryController from '../controllers/category.controller';
-import validate from '../middlewares/validate.middleware';
-import { createCategorySchema, updateCategorySchema } from '../validations/category.validation';
-import { authMiddleware } from '../middlewares/auth.middleware';
+import { Router } from "express";
+import * as categoryController from "../controllers/category.controller";
+import validate from "../middlewares/validate.middleware";
+import {
+  createCategorySchema,
+  updateCategorySchema,
+} from "../validations/category.validation";
+import { authMiddleware } from "../middlewares/auth.middleware";
 
 const router = Router();
 
@@ -39,29 +42,48 @@ router.use(authMiddleware);
  *       401:
  *         description: Unauthorized
  */
-router.post('/', validate(createCategorySchema), categoryController.createCategory);
+router.post(
+  "/",
+  validate(createCategorySchema),
+  categoryController.createCategory,
+);
 
 /**
  * @swagger
  * /api/categories:
  *   get:
- *     summary: Retrieve a list of categories
+ *     summary: Retrieve a list of categories with filtering and pagination
  *     tags: [Categories]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *       - in: query
+ *         name: name
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: categoryId
+ *         schema:
+ *           type: string
  *     responses:
  *       200:
- *         description: A list of categories.
+ *         description: A paginated list of categories.
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/CategoryResponse'
- *       401:
- *         description: Unauthorized
+ *               $ref: '#/components/schemas/PaginatedCategoryResponse'
  */
-router.get('/', categoryController.getAllCategories);
+router.get("/", categoryController.getAllCategories);
 
 /**
  * @swagger
@@ -89,7 +111,7 @@ router.get('/', categoryController.getAllCategories);
  *       404:
  *         description: Category not found
  */
-router.get('/:id', categoryController.getCategoryById);
+router.get("/:id", categoryController.getCategoryById);
 
 /**
  * @swagger
@@ -123,7 +145,11 @@ router.get('/:id', categoryController.getCategoryById);
  *       404:
  *         description: Category not found
  */
-router.put('/:id', validate(updateCategorySchema), categoryController.updateCategory);
+router.put(
+  "/:id",
+  validate(updateCategorySchema),
+  categoryController.updateCategory,
+);
 
 /**
  * @swagger
@@ -147,7 +173,7 @@ router.put('/:id', validate(updateCategorySchema), categoryController.updateCate
  *       404:
  *         description: Category not found
  */
-router.delete('/:id', categoryController.deleteCategory);
+router.delete("/:id", categoryController.deleteCategory);
 
 export default router;
 
